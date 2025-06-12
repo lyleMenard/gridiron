@@ -37,12 +37,12 @@
 	let renderWidth = $state(0);
 	let renderHeight = $state(0);
 
-	let cameraPosX = $state(-1);
-	let cameraPosY = $state(2);
-	let cameraPosZ = $state(-1);
+	let cameraPosX = $state(-1.6);
+	let cameraPosY = $state(1.4);
+	let cameraPosZ = $state(-1.4);
 
-	let cameraRotX = $state(0.5);
-	let cameraRotY = $state(-0.5);
+	let cameraRotX = $state(0.8);
+	let cameraRotY = $state(-0.6);
 	let cameraRotZ = $state(-0.5);
 
 	onMount(() => {
