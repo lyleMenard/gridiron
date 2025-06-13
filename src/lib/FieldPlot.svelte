@@ -6,14 +6,10 @@
 	import Slider from '$lib/Slider.svelte';
 
 	interface Play {
-		Quarter: number;
-		Minute: number;
-		Second: number;
-		ToGo: number;
-		Yards: number;
-		Mesh:
-			| THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>
-			| undefined;
+		Index: number;
+		Start: number;
+		End: number;
+		Mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>;
 	}
 
 	interface Field {
@@ -23,6 +19,13 @@
 		PlayIndex: number;
 		Mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>;
 	}
+
+	const ENDZONE_PIXELS = 121;
+	const ALL_YARDS_PIXELS = 884;
+	const MARGIN_PIXELS = 32;
+	const PIXELS_PER_YARD = ALL_YARDS_PIXELS / 100;
+	const FIELD_MESH_UNIT_LENGTH = 100 + (ENDZONE_PIXELS / PIXELS_PER_YARD) * 2; 
+	const FIELD_MESH_UNIT_WIDTH = FIELD_MESH_UNIT_LENGTH * (1125/543);
 
 	let threeJSContainer: HTMLElement;
 
@@ -39,13 +42,13 @@
 	let renderWidth = $state(0);
 	let renderHeight = $state(0);
 
-	let cameraPosX = $state(-1.6);
-	let cameraPosY = $state(1.4);
-	let cameraPosZ = $state(-1.4);
+	let cameraPosX = $state(125);
+	let cameraPosY = $state(261);
+	let cameraPosZ = $state(-62);
 
-	let cameraRotX = $state(0.8);
-	let cameraRotY = $state(-0.6);
-	let cameraRotZ = $state(-0.5);
+	let cameraRotX = $state(0);
+	let cameraRotY = $state(0);
+	let cameraRotZ = $state(0);
 
 	onMount(() => {
 		if (browser && !initialized) {
@@ -111,12 +114,18 @@
 	function initModels() {
 		fields = [];
 		const testField = $state(createField('home', 'away'));
+		
+		const sphere = new THREE.SphereGeometry(1);
+		const origin_material = new THREE.MeshBasicMaterial({
+			color: 'white'
+		});
+		const origin = new THREE.Mesh(sphere, origin_material);
+		scene.add(origin);
 		$inspect(testField.Plays);
 	}
 
 	function createField(home: string, away: string) {
-		const planeDimensions = [1200, 579];
-		const geometery = new THREE.PlaneGeometry(1200 / 579, 1);
+		const geometery = new THREE.PlaneGeometry(FIELD_MESH_UNIT_WIDTH, FIELD_MESH_UNIT_LENGTH);
 		const loader = new THREE.TextureLoader();
 
 		const texture = loader.load(fieldTexture);
@@ -129,7 +138,8 @@
 		});
 
 		const plane = new THREE.Mesh(geometery, material);
-
+		plane.position.x += (FIELD_MESH_UNIT_WIDTH/2) - ENDZONE_PIXELS / PIXELS_PER_YARD * 2;
+		plane.position.y -= (FIELD_MESH_UNIT_LENGTH/2) - MARGIN_PIXELS / PIXELS_PER_YARD * 2;
 		const newField: Field = {
 			HomeTeam: home,
 			AwayTeam: away,
@@ -144,41 +154,29 @@
 		return newField;
 	}
 
-	function createPlay(
-		quarter: number,
-		minute: number,
-		second: number,
-		togo: number,
-		yards: number
-	) {
+	function createPlay(yards: number) {
+		const geometry = new THREE.BoxGeometry(10, yards, 10);
+		const material = new THREE.MeshBasicMaterial({
+			color: 'red'
+		});
+		const mesh = new THREE.Mesh(geometry, material);
 		const play: Play = {
-			Quarter: quarter,
-			Minute: minute,
-			Second: second,
-			ToGo: togo,
-			Yards: yards,
-			Mesh: undefined
+			Index: 0,
+			Start: 0,
+			End: yards,
+			Mesh: mesh,
 		};
 		return play;
 	}
 
 	function addPlayToField(play: Play, field: Field) {
-		const width = field.Mesh.geometry.getAttribute('width');
-		const height = field.Mesh.geometry.getAttribute('height');
-
-		const geometry = new THREE.BoxGeometry(1, play.Yards, 1);
-
-		const material = new THREE.MeshBasicMaterial({
-			color: 'red'
-		});
-		const playMesh = new THREE.Mesh(geometry, material);
 		field.Plays.push(play);
-		scene.add(playMesh);
+		scene.add(play.Mesh);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
-			const testPlay: Play = createPlay(1, 14, 59, 10, 10);
+			const testPlay: Play = createPlay(7);
 			addPlayToField(testPlay, fields[0]);
 		}
 	}
@@ -193,13 +191,13 @@
 	<!-- {#if debug} -->
 	<!-- <div class="debugTools">
 		<h1>Position:</h1>
-		<Slider name={'x position'} min={-5} max={5} bind:value={cameraPosX} />
-		<Slider name={'y position'} min={-5} max={5} bind:value={cameraPosY} />
-		<Slider name={'z position'} min={-5} max={5} bind:value={cameraPosZ} />
+		<Slider name={'x position'} min={-500} max={500} bind:value={cameraPosX} />
+		<Slider name={'y position'} min={-500} max={500} bind:value={cameraPosY} />
+		<Slider name={'z position'} min={-500} max={500} bind:value={cameraPosZ} />
 		<h1>Rotation:</h1>
-		<Slider name={'x rotation'} min={-5} max={5} bind:value={cameraRotX} />
-		<Slider name={'y rotation'} min={-5} max={5} bind:value={cameraRotY} />
-		<Slider name={'z rotation'} min={-5} max={5} bind:value={cameraRotZ} />
+		<Slider name={'x rotation'} min={-4} max={4} bind:value={cameraRotX} />
+		<Slider name={'y rotation'} min={-4} max={4} bind:value={cameraRotY} />
+		<Slider name={'z rotation'} min={-4} max={4} bind:value={cameraRotZ} />
 	</div> -->
 	<!-- {/if} -->
 	<div
