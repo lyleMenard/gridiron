@@ -11,7 +11,9 @@
 		Second: number;
 		ToGo: number;
 		Yards: number;
-		Mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>;
+		Mesh:
+			| THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>
+			| undefined;
 	}
 
 	interface Field {
@@ -53,7 +55,7 @@
 		}
 	});
 
-	const initScene = (width: number, height: number) => {
+	function initScene(width: number, height: number) {
 		// initialize renderer and append to DOM
 		renderer = new THREE.WebGLRenderer({ antialias: true });
 		renderer.setSize(width, height);
@@ -76,9 +78,9 @@
 
 		window.addEventListener('resize', handleResize);
 		initialized = true;
-	};
+	}
 
-	const animate = () => {
+	function animate() {
 		fields.forEach((field) => {
 			// field.Mesh.rotation.x -= 0.005;
 			// mesh.rotation.z += 0.005;
@@ -93,29 +95,26 @@
 		camera!.rotation.z = cameraRotZ;
 
 		render();
-	};
+	}
 
-	const render = () => {
+	function render() {
 		renderer.clear();
 		renderer.render(scene, camera!);
-	};
+	}
 
-	const handleResize = () => {
+	function handleResize() {
 		camera!.aspect = renderWidth / renderHeight;
 		camera!.updateProjectionMatrix();
 		renderer.setSize(renderWidth, renderHeight);
-	};
+	}
 
-	const initModels = () => {
+	function initModels() {
 		fields = [];
 		const testField = $state(createField('home', 'away'));
 		$inspect(testField.Plays);
+	}
 
-		fields.push(testField);
-		scene.add(testField.Mesh);
-	};
-
-	const createField = (home: string, away: string) => {
+	function createField(home: string, away: string) {
 		const planeDimensions = [1200, 579];
 		const geometery = new THREE.PlaneGeometry(1200 / 579, 1);
 		const loader = new THREE.TextureLoader();
@@ -128,7 +127,9 @@
 		const material = new THREE.MeshBasicMaterial({
 			map: texture
 		});
+
 		const plane = new THREE.Mesh(geometery, material);
+
 		const newField: Field = {
 			HomeTeam: home,
 			AwayTeam: away,
@@ -136,47 +137,51 @@
 			Plays: [],
 			PlayIndex: 0
 		};
-		return newField;
-	};
 
-	const createPlay = (
+		fields.push(newField);
+		scene.add(newField.Mesh);
+
+		return newField;
+	}
+
+	function createPlay(
 		quarter: number,
 		minute: number,
 		second: number,
 		togo: number,
 		yards: number
-	) => {
-		const geometry = new THREE.BoxGeometry(1, 5, yards);
-
-		const material = new THREE.MeshBasicMaterial({
-			color: 'red'
-		});
-		const playMesh = new THREE.Mesh(geometry, material);
-
+	) {
 		const play: Play = {
 			Quarter: quarter,
 			Minute: minute,
 			Second: second,
 			ToGo: togo,
 			Yards: yards,
-			Mesh: playMesh
+			Mesh: undefined
 		};
 		return play;
-	};
+	}
 
-	const addPlayToField = (play: Play) => {
-		fields.forEach((field) => {
-			field.Plays.push(play);
+	function addPlayToField(play: Play, field: Field) {
+		const width = field.Mesh.geometry.getAttribute('width');
+		const height = field.Mesh.geometry.getAttribute('height');
+
+		const geometry = new THREE.BoxGeometry(1, play.Yards, 1);
+
+		const material = new THREE.MeshBasicMaterial({
+			color: 'red'
 		});
-	};
+		const playMesh = new THREE.Mesh(geometry, material);
+		field.Plays.push(play);
+		scene.add(playMesh);
+	}
 
-	const handleKeyDown = (event: KeyboardEvent) => {
+	function handleKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
-			debug = true;
 			const testPlay: Play = createPlay(1, 14, 59, 10, 10);
-			addPlayToField(testPlay);
+			addPlayToField(testPlay, fields[0]);
 		}
-	};
+	}
 </script>
 
 <svelte:head>
@@ -186,7 +191,7 @@
 <!-- <button on:click={addPlay}></button> -->
 <div class="flex-container">
 	<!-- {#if debug} -->
-	<div class="debugTools">
+	<!-- <div class="debugTools">
 		<h1>Position:</h1>
 		<Slider name={'x position'} min={-5} max={5} bind:value={cameraPosX} />
 		<Slider name={'y position'} min={-5} max={5} bind:value={cameraPosY} />
@@ -195,7 +200,7 @@
 		<Slider name={'x rotation'} min={-5} max={5} bind:value={cameraRotX} />
 		<Slider name={'y rotation'} min={-5} max={5} bind:value={cameraRotY} />
 		<Slider name={'z rotation'} min={-5} max={5} bind:value={cameraRotZ} />
-	</div>
+	</div> -->
 	<!-- {/if} -->
 	<div
 		class="threeJSCanvas"
@@ -213,11 +218,6 @@
 
 	div.flex-container {
 		display: flex;
-	}
-
-	div.debugTools {
-		flex: 2;
-		background-color: white;
 	}
 
 	div.threeJSCanvas {
